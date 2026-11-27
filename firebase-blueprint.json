@@ -1,0 +1,330 @@
+{
+  "entities": {
+    "Activity": {
+      "title": "Activity",
+      "description": "Foundation community activity or public relations news item.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "category": {
+          "type": "string",
+          "enum": [
+            "ช่วยเหลือผู้ประสบภัย",
+            "ตรวจสุขภาพฟรี",
+            "บริจาคโลหิต",
+            "กิจกรรมชุมชน",
+            "ฝึกอบรมกู้ชีพ",
+            "ข่าวประชาสัมพันธ์"
+          ],
+          "maxLength": 60
+        },
+        "summary": { "type": "string", "minLength": 2, "maxLength": 500 },
+        "description": { "type": "string", "minLength": 2, "maxLength": 4000 },
+        "dateLabel": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "location": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "participantsCount": { "type": "number" },
+        "imageUrl": { "type": "string", "maxLength": 350000 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "title",
+        "category",
+        "summary",
+        "description",
+        "dateLabel",
+        "location",
+        "participantsCount",
+        "imageUrl",
+        "authorName",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "AnnualEvent": {
+      "title": "AnnualEvent",
+      "description": "Annual calendar event with optional image and PDF attachment.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "monthIndex": { "type": "number" },
+        "monthLabel": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "dateLabel": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "description": { "type": "string", "minLength": 2, "maxLength": 2000 },
+        "location": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "imageUrl": { "type": "string", "maxLength": 350000 },
+        "pdfName": { "type": "string", "maxLength": 180 },
+        "pdfDataUrl": { "type": "string", "maxLength": 350000 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "title",
+        "monthIndex",
+        "monthLabel",
+        "dateLabel",
+        "category",
+        "description",
+        "location",
+        "imageUrl",
+        "pdfName",
+        "pdfDataUrl",
+        "userId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DonationPublic": {
+      "title": "DonationPublic",
+      "description": "Publicly visible donation record without personal contact details.",
+      "type": "object",
+      "properties": {
+        "donorDisplayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "amount": { "type": "number" },
+        "purpose": {
+          "type": "string",
+          "enum": ["รถพยาบาล", "อุปกรณ์การแพทย์", "ช่วยเหลือผู้ประสบภัย", "ทุนฝึกอบรมกู้ชีพ"],
+          "maxLength": 80
+        },
+        "channel": {
+          "type": "string",
+          "enum": ["QR PromptPay", "โอนผ่านธนาคาร", "บริจาคที่มูลนิธิ"],
+          "maxLength": 60
+        },
+        "note": { "type": "string", "maxLength": 300 },
+        "dateLabel": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "donorDisplayName",
+        "amount",
+        "purpose",
+        "channel",
+        "note",
+        "dateLabel",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "EmergencyReport": {
+      "title": "EmergencyReport",
+      "description": "Online emergency incident report submitted by citizen or volunteer.",
+      "type": "object",
+      "properties": {
+        "reporterName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "reporterPhone": { "type": "string", "minLength": 8, "maxLength": 30 },
+        "incidentType": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "locationText": { "type": "string", "minLength": 2, "maxLength": 300 },
+        "severity": { "type": "string", "enum": ["วิกฤต", "เร่งด่วน", "ทั่วไป"], "maxLength": 30 },
+        "details": { "type": "string", "minLength": 2, "maxLength": 1500 },
+        "lineNotifySent": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["รอรับเรื่อง", "กำลังจัดชุดกู้ชีพ", "เสร็จสิ้น"], "maxLength": 40 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "reporterName",
+        "reporterPhone",
+        "incidentType",
+        "locationText",
+        "severity",
+        "details",
+        "lineNotifySent",
+        "status",
+        "userId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VolunteerApplication": {
+      "title": "VolunteerApplication",
+      "description": "Volunteer membership application.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "phone": { "type": "string", "minLength": 8, "maxLength": 30 },
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "division": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "experience": { "type": "string", "maxLength": 1000 },
+        "availability": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "status": { "type": "string", "enum": ["รอพิจารณา", "อนุมัติแล้ว"], "maxLength": 40 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "fullName",
+        "phone",
+        "email",
+        "division",
+        "experience",
+        "availability",
+        "status",
+        "userId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CprRegistration": {
+      "title": "CprRegistration",
+      "description": "CPR training course registration.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "phone": { "type": "string", "minLength": 8, "maxLength": 30 },
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "organization": { "type": "string", "maxLength": 160 },
+        "sessionDate": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "status": { "type": "string", "enum": ["ลงทะเบียนสำเร็จ", "ยกเลิก"], "maxLength": 40 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "fullName",
+        "phone",
+        "email",
+        "organization",
+        "sessionDate",
+        "status",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "AcupunctureBooking": {
+      "title": "AcupunctureBooking",
+      "description": "Traditional Chinese Medicine acupuncture clinic queue reservation.",
+      "type": "object",
+      "properties": {
+        "patientName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "phone": { "type": "string", "minLength": 8, "maxLength": 30 },
+        "preferredDate": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "timeSlot": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "symptoms": { "type": "string", "minLength": 2, "maxLength": 1000 },
+        "queueNumber": { "type": "string", "minLength": 2, "maxLength": 20 },
+        "status": { "type": "string", "enum": ["จองคิวแล้ว", "เข้ารับบริการแล้ว", "ยกเลิก"], "maxLength": 40 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "patientName",
+        "phone",
+        "preferredDate",
+        "timeSlot",
+        "symptoms",
+        "queueNumber",
+        "status",
+        "userId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Public contact inquiry message.",
+      "type": "object",
+      "properties": {
+        "senderName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "phone": { "type": "string", "minLength": 8, "maxLength": 30 },
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "subject": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "message": { "type": "string", "minLength": 2, "maxLength": 2000 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "senderName",
+        "phone",
+        "email",
+        "subject",
+        "message",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "InternalDoc": {
+      "title": "InternalDoc",
+      "description": "Internal foundation document record for staff and executives.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "department": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "docCode": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "fileName": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "fileDataUrl": { "type": "string", "maxLength": 350000 },
+        "uploadedBy": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "title",
+        "department",
+        "docCode",
+        "fileName",
+        "fileDataUrl",
+        "uploadedBy",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "AdminRole": {
+      "title": "AdminRole",
+      "description": "Designated foundation administrator role document.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "role": { "type": "string", "enum": ["admin", "staff"], "maxLength": 20 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "displayName", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Public timeline of foundation activities and PR news."
+    },
+    "/annualEvents/{eventId}": {
+      "schema": { "$ref": "#/entities/AnnualEvent" },
+      "description": "Annual calendar events with optional images and PDF attachments."
+    },
+    "/donationsPublic/{donationId}": {
+      "schema": { "$ref": "#/entities/DonationPublic" },
+      "description": "Public online donation ledger."
+    },
+    "/emergencyReports/{reportId}": {
+      "schema": { "$ref": "#/entities/EmergencyReport" },
+      "description": "Emergency incident reports with reporter PII restricted to owner or admin."
+    },
+    "/volunteerApplications/{applicationId}": {
+      "schema": { "$ref": "#/entities/VolunteerApplication" },
+      "description": "Volunteer applications with applicant PII restricted to owner or admin."
+    },
+    "/cprRegistrations/{registrationId}": {
+      "schema": { "$ref": "#/entities/CprRegistration" },
+      "description": "CPR training registrations restricted to owner or admin."
+    },
+    "/acupunctureBookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/AcupunctureBooking" },
+      "description": "Acupuncture clinic queue bookings restricted to owner or admin."
+    },
+    "/contactMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/ContactMessage" },
+      "description": "Contact inquiries restricted to owner or admin."
+    },
+    "/internalDocs/{docId}": {
+      "schema": { "$ref": "#/entities/InternalDoc" },
+      "description": "Internal foundation documents restricted to admins/staff."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminRole" },
+      "description": "Admin role registry."
+    }
+  }
+}

@@ -1,0 +1,472 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1 / Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrapAdmin() {
+      return isVerified() && request.auth.token.email == 'emsrkl1669@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrapAdmin() || (
+        isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidUidField(uidVal) {
+      return isValidId(uidVal) && uidVal == request.auth.uid;
+    }
+
+    // Validation Blueprints (Phase 4)
+    function isValidActivity(data) {
+      return data.keys().hasAll([
+          'title', 'category', 'summary', 'description', 'dateLabel',
+          'location', 'participantsCount', 'imageUrl', 'authorName', 'userId', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'category', 'summary', 'description', 'dateLabel',
+          'location', 'participantsCount', 'imageUrl', 'authorName', 'userId', 'createdAt'
+        ]) &&
+        isValidString(data.title, 2, 200) &&
+        data.category in [
+          'ช่วยเหลือผู้ประสบภัย', 'ตรวจสุขภาพฟรี', 'บริจาคโลหิต',
+          'กิจกรรมชุมชน', 'ฝึกอบรมกู้ชีพ', 'ข่าวประชาสัมพันธ์'
+        ] &&
+        isValidString(data.summary, 2, 500) &&
+        isValidString(data.description, 2, 4000) &&
+        isValidString(data.dateLabel, 2, 80) &&
+        isValidString(data.location, 2, 200) &&
+        data.participantsCount is number && data.participantsCount >= 0 && data.participantsCount <= 100000 &&
+        data.imageUrl is string && data.imageUrl.size() <= 350000 &&
+        isValidString(data.authorName, 1, 120) &&
+        isValidId(data.userId) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAnnualEvent(data) {
+      return data.keys().hasAll([
+          'title', 'monthIndex', 'monthLabel', 'dateLabel', 'category',
+          'description', 'location', 'imageUrl', 'pdfName', 'pdfDataUrl',
+          'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'monthIndex', 'monthLabel', 'dateLabel', 'category',
+          'description', 'location', 'imageUrl', 'pdfName', 'pdfDataUrl',
+          'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidString(data.title, 2, 200) &&
+        data.monthIndex is number && data.monthIndex >= 1 && data.monthIndex <= 12 &&
+        isValidString(data.monthLabel, 2, 40) &&
+        isValidString(data.dateLabel, 2, 80) &&
+        isValidString(data.category, 2, 80) &&
+        isValidString(data.description, 2, 2000) &&
+        isValidString(data.location, 2, 200) &&
+        data.imageUrl is string && data.imageUrl.size() <= 350000 &&
+        data.pdfName is string && data.pdfName.size() <= 180 &&
+        data.pdfDataUrl is string && data.pdfDataUrl.size() <= 350000 &&
+        isValidId(data.userId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidDonationPublic(data) {
+      return data.keys().hasAll([
+          'donorDisplayName', 'amount', 'purpose', 'channel',
+          'note', 'dateLabel', 'userId', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'donorDisplayName', 'amount', 'purpose', 'channel',
+          'note', 'dateLabel', 'userId', 'createdAt'
+        ]) &&
+        isValidString(data.donorDisplayName, 1, 120) &&
+        data.amount is number && data.amount > 0 && data.amount <= 10000000 &&
+        data.purpose in ['รถพยาบาล', 'อุปกรณ์การแพทย์', 'ช่วยเหลือผู้ประสบภัย', 'ทุนฝึกอบรมกู้ชีพ'] &&
+        data.channel in ['QR PromptPay', 'โอนผ่านธนาคาร', 'บริจาคที่มูลนิธิ'] &&
+        data.note is string && data.note.size() <= 300 &&
+        isValidString(data.dateLabel, 2, 60) &&
+        isValidUidField(data.userId) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidEmergencyReport(data) {
+      return data.keys().hasAll([
+          'reporterName', 'reporterPhone', 'incidentType', 'locationText',
+          'severity', 'details', 'lineNotifySent', 'status', 'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'reporterName', 'reporterPhone', 'incidentType', 'locationText',
+          'severity', 'details', 'lineNotifySent', 'status', 'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidString(data.reporterName, 2, 120) &&
+        isValidString(data.reporterPhone, 8, 30) &&
+        isValidString(data.incidentType, 2, 100) &&
+        isValidString(data.locationText, 2, 300) &&
+        data.severity in ['วิกฤต', 'เร่งด่วน', 'ทั่วไป'] &&
+        isValidString(data.details, 2, 1500) &&
+        data.lineNotifySent is bool &&
+        data.status in ['รอรับเรื่อง', 'กำลังจัดชุดกู้ชีพ', 'เสร็จสิ้น'] &&
+        isValidId(data.userId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidVolunteerApplication(data) {
+      return data.keys().hasAll([
+          'fullName', 'phone', 'email', 'division', 'experience',
+          'availability', 'status', 'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'fullName', 'phone', 'email', 'division', 'experience',
+          'availability', 'status', 'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidString(data.fullName, 2, 120) &&
+        isValidString(data.phone, 8, 30) &&
+        isValidString(data.email, 3, 160) &&
+        isValidString(data.division, 2, 100) &&
+        data.experience is string && data.experience.size() <= 1000 &&
+        isValidString(data.availability, 2, 100) &&
+        data.status in ['รอพิจารณา', 'อนุมัติแล้ว'] &&
+        isValidId(data.userId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCprRegistration(data) {
+      return data.keys().hasAll([
+          'fullName', 'phone', 'email', 'organization', 'sessionDate', 'status', 'userId', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'fullName', 'phone', 'email', 'organization', 'sessionDate', 'status', 'userId', 'createdAt'
+        ]) &&
+        isValidString(data.fullName, 2, 120) &&
+        isValidString(data.phone, 8, 30) &&
+        isValidString(data.email, 3, 160) &&
+        data.organization is string && data.organization.size() <= 160 &&
+        isValidString(data.sessionDate, 2, 80) &&
+        data.status in ['ลงทะเบียนสำเร็จ', 'ยกเลิก'] &&
+        isValidId(data.userId) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAcupunctureBooking(data) {
+      return data.keys().hasAll([
+          'patientName', 'phone', 'preferredDate', 'timeSlot', 'symptoms',
+          'queueNumber', 'status', 'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'patientName', 'phone', 'preferredDate', 'timeSlot', 'symptoms',
+          'queueNumber', 'status', 'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidString(data.patientName, 2, 120) &&
+        isValidString(data.phone, 8, 30) &&
+        isValidString(data.preferredDate, 2, 40) &&
+        isValidString(data.timeSlot, 2, 60) &&
+        isValidString(data.symptoms, 2, 1000) &&
+        isValidString(data.queueNumber, 2, 20) &&
+        data.status in ['จองคิวแล้ว', 'เข้ารับบริการแล้ว', 'ยกเลิก'] &&
+        isValidId(data.userId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll([
+          'senderName', 'phone', 'email', 'subject', 'message', 'userId', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'senderName', 'phone', 'email', 'subject', 'message', 'userId', 'createdAt'
+        ]) &&
+        isValidString(data.senderName, 2, 120) &&
+        isValidString(data.phone, 8, 30) &&
+        isValidString(data.email, 3, 160) &&
+        isValidString(data.subject, 2, 200) &&
+        isValidString(data.message, 2, 2000) &&
+        isValidUidField(data.userId) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidInternalDoc(data) {
+      return data.keys().hasAll([
+          'title', 'department', 'docCode', 'fileName', 'fileDataUrl', 'uploadedBy', 'userId', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'department', 'docCode', 'fileName', 'fileDataUrl', 'uploadedBy', 'userId', 'createdAt'
+        ]) &&
+        isValidString(data.title, 2, 200) &&
+        isValidString(data.department, 2, 100) &&
+        isValidString(data.docCode, 2, 60) &&
+        isValidString(data.fileName, 2, 180) &&
+        data.fileDataUrl is string && data.fileDataUrl.size() <= 350000 &&
+        isValidString(data.uploadedBy, 2, 120) &&
+        isValidUidField(data.userId) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAdminRole(data) {
+      return data.keys().hasAll(['email', 'displayName', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['email', 'displayName', 'role', 'createdAt']) &&
+        isValidString(data.email, 3, 160) &&
+        isValidString(data.displayName, 1, 120) &&
+        data.role in ['admin', 'staff'] &&
+        data.createdAt is timestamp;
+    }
+
+    // 1. Activities (Public Non-PII)
+    match /activities/{activityId} {
+      allow get: if isValidId(activityId);
+      allow list: if true;
+      allow create: if isVerified() &&
+        isValidId(activityId) &&
+        isValidActivity(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        isAdmin();
+      allow update: if isVerified() &&
+        isValidId(activityId) &&
+        isValidActivity(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().userId == existing().userId &&
+        isAdmin() &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'category', 'summary', 'description', 'dateLabel',
+          'location', 'participantsCount', 'imageUrl'
+        ]);
+      allow delete: if isValidId(activityId) && isAdmin();
+    }
+
+    // 2. Annual Events (Public Non-PII, Staff/Verified contributors can manage)
+    match /annualEvents/{eventId} {
+      allow get: if isValidId(eventId);
+      allow list: if true;
+      allow create: if isVerified() &&
+        isValidId(eventId) &&
+        isValidAnnualEvent(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() &&
+        isValidId(eventId) &&
+        isValidAnnualEvent(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().userId == existing().userId &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'monthIndex', 'monthLabel', 'dateLabel', 'category',
+              'description', 'location', 'imageUrl', 'pdfName', 'pdfDataUrl', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(eventId) && (
+        isAdmin() || (isVerified() && existing().userId == request.auth.uid)
+      );
+    }
+
+    // 3. Donations Public Ledger (Public Non-PII)
+    match /donationsPublic/{donationId} {
+      allow get: if isValidId(donationId);
+      allow list: if true;
+      allow create: if isVerified() &&
+        isValidId(donationId) &&
+        isValidDonationPublic(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(donationId) && isAdmin();
+    }
+
+    // 4. Emergency Reports (PII Protected)
+    match /emergencyReports/{reportId} {
+      allow get: if isValidId(reportId) && (
+        isAdmin() || (isVerified() && existing().userId == request.auth.uid)
+      );
+      allow list: if isBootstrapAdmin() || (isVerified() && resource.data.userId == request.auth.uid);
+      allow create: if isVerified() &&
+        isValidId(reportId) &&
+        isValidEmergencyReport(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'รอรับเรื่อง' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() &&
+        isValidId(reportId) &&
+        isValidEmergencyReport(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().userId == existing().userId &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().userId == request.auth.uid &&
+            existing().status != 'เสร็จสิ้น' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['details', 'locationText', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(reportId) && isAdmin();
+    }
+
+    // 5. Volunteer Applications (PII Protected)
+    match /volunteerApplications/{applicationId} {
+      allow get: if isValidId(applicationId) && (
+        isAdmin() || (isVerified() && existing().userId == request.auth.uid)
+      );
+      allow list: if isBootstrapAdmin() || (isVerified() && resource.data.userId == request.auth.uid);
+      allow create: if isVerified() &&
+        isValidId(applicationId) &&
+        isValidVolunteerApplication(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'รอพิจารณา' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() &&
+        isValidId(applicationId) &&
+        isValidVolunteerApplication(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().userId == existing().userId &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().userId == request.auth.uid &&
+            existing().status != 'อนุมัติแล้ว' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['division', 'experience', 'availability', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(applicationId) && isAdmin();
+    }
+
+    // 6. CPR Registrations (PII Protected)
+    match /cprRegistrations/{registrationId} {
+      allow get: if isValidId(registrationId) && (
+        isAdmin() || (isVerified() && existing().userId == request.auth.uid)
+      );
+      allow list: if isBootstrapAdmin() || (isVerified() && resource.data.userId == request.auth.uid);
+      allow create: if isVerified() &&
+        isValidId(registrationId) &&
+        isValidCprRegistration(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'ลงทะเบียนสำเร็จ' &&
+        incoming().createdAt == request.time;
+      allow update: if isVerified() &&
+        isValidId(registrationId) &&
+        isValidCprRegistration(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().userId == existing().userId &&
+        (
+          isAdmin() ||
+          (
+            existing().userId == request.auth.uid &&
+            existing().status != 'ยกเลิก' &&
+            incoming().status == 'ยกเลิก' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+          )
+        );
+      allow delete: if isValidId(registrationId) && isAdmin();
+    }
+
+    // 7. Acupuncture Clinic Bookings (PII Protected)
+    match /acupunctureBookings/{bookingId} {
+      allow get: if isValidId(bookingId) && (
+        isAdmin() || (isVerified() && existing().userId == request.auth.uid)
+      );
+      allow list: if isBootstrapAdmin() || (isVerified() && resource.data.userId == request.auth.uid);
+      allow create: if isVerified() &&
+        isValidId(bookingId) &&
+        isValidAcupunctureBooking(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'จองคิวแล้ว' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() &&
+        isValidId(bookingId) &&
+        isValidAcupunctureBooking(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().userId == existing().userId &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().userId == request.auth.uid &&
+            existing().status == 'จองคิวแล้ว' &&
+            incoming().status == 'ยกเลิก' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(bookingId) && isAdmin();
+    }
+
+    // 8. Contact Messages (PII Protected)
+    match /contactMessages/{messageId} {
+      allow get: if isValidId(messageId) && (
+        isAdmin() || (isVerified() && existing().userId == request.auth.uid)
+      );
+      allow list: if isBootstrapAdmin() || (isVerified() && resource.data.userId == request.auth.uid);
+      allow create: if isVerified() &&
+        isValidId(messageId) &&
+        isValidContactMessage(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(messageId) && isAdmin();
+    }
+
+    // 9. Internal Foundation Documents (Admin/Staff Only)
+    match /internalDocs/{docId} {
+      allow get: if isValidId(docId) && isAdmin();
+      allow list: if isBootstrapAdmin();
+      allow create: if isValidId(docId) &&
+        isAdmin() &&
+        isValidInternalDoc(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(docId) && isAdmin();
+    }
+
+    // 10. Admins Registry
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && isVerified() && (
+        request.auth.uid == adminUid || isBootstrapAdmin()
+      );
+      allow list: if isBootstrapAdmin();
+      allow create: if isValidId(adminUid) &&
+        isBootstrapAdmin() &&
+        isValidAdminRole(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if isValidId(adminUid) &&
+        isBootstrapAdmin() &&
+        isValidAdminRole(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role']);
+      allow delete: if isValidId(adminUid) && isBootstrapAdmin();
+    }
+  }
+}
